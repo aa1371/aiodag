@@ -89,7 +89,7 @@ loop = asyncio.new_event_loop()
 loop.run_until_complete(main())
 ```
 
-You can see from the print outs that our pipeline tasks were executed asynchronously and in the optimal runtime. You might have also noticed that we never awaited or gathered any of our tasks, that is because each invocation of a task is implicitly scheduled on the event loop. Behind the scenes what's happening is the following DAG is built and optimally executed.
+You can see from the print outs that our pipeline tasks were executed asynchronously and in the optimal runtime. You might have also noticed that we never awaited or gathered any of our tasks, that is because each invocation of a task is implicitly scheduled on the event loop. However, we can still await/gather the results of the task invocations if we want. Behind the scenes what's happening is the following DAG is built and optimally executed.
 
 ![alt text](https://github.com/aa1371/aiodag/blob/main/assets/PipelineDAG.png?raw=true)
 
