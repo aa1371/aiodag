@@ -85,13 +85,18 @@ async def main():
     upload(sa, sab, sc)
     
     # put this here so loop.run_until_complete doesn't finish prematurely
+    # we could also have just gathered the result of upload,
+    # but refrained from doing so to demonstrate that the task
+    # would still be executed if you didn't
     await asyncio.sleep(10)
     
 loop = asyncio.new_event_loop()
 loop.run_until_complete(main())
 ```
 
-You can see from the print outs that our pipeline tasks were executed asynchronously and in the optimal runtime. You might have also noticed that we never awaited or gathered any of our tasks, that is because each invocation of a task is implicitly scheduled on the event loop. However, we can still await/gather the results of the task invocations if we want. Behind the scenes what's happening is the following DAG is built and optimally executed.
+You can see from the print outs that our pipeline tasks were executed asynchronously and in the optimal runtime. You might have also noticed that we never awaited or gathered any of our tasks, that is because each invocation of a task is implicitly scheduled on the event loop. However, we can still await/gather the results of the task invocations if we want. One last thing to note is that some tasks took in the result of another task (e.g. concatenate calls) and some just took in a "plain" value (e.g. fetch calls). Task parameters can be anything, if it is the result of another task it will make sure to resolve the task before passing the value through, if it is something else, it will just treat it like a regular function parameter.
+
+Behind the scenes what's happening is the following DAG is built and optimally executed.
 
 ![alt text](https://github.com/aa1371/aiodag/blob/main/assets/PipelineDAG.png?raw=true)
 
@@ -115,7 +120,45 @@ loop = asyncio.new_event_loop()
 loop.run_until_complete(main())
 ```
 
+## Endogenous vs Exogenous Depedencies
 
+So far all dependencies we have seen have been implied by and passed through the parameters of an async function. In aiodag we refer to these as `endogenous` dependencies because they are inherent to the task through the function definition. 
 
+However, what if we wanted to apply a dependency to a task that wasn't explicitly part of the task function definition. At invocation time we can define arbitrary extra dependencies on any task, the results of these dependencies will not be passed to the dependent task, but it will still wait for the dependencies to finish before executing the task. We refer to these as `exogenous` dependencies because they are defined externally to and without regard for the context of a task.
 
+You can see how we can define and mix both kinds of dependencies below.
 
+```
+import asyncio
+from aiodag import task
+import time
+
+@task
+async def start_after_x_seconds(x):
+    await asyncio.sleep(x)
+
+@task
+async def fetch():
+    print(f'Fetched after {time.time() - START_TIME} secs')
+    return 'data'
+    
+@task
+async def process(raw_data):
+    await asyncio.sleep(1)
+    print(f'Processed after {time.time() - START_TIME} secs')
+    return 'processed_' + raw_data
+    
+async def main():
+    fetch_wait = start_after_x_seconds(2)
+    process_wait = start_after_x_seconds(4)
+    
+    f = task(fetch, fetch_wait)()
+    p = task(process, process_wait)(f)
+    return await asyncio.gather(p)
+    
+START_TIME = time.time()
+loop = asyncio.new_event_loop()
+loop.run_until_complete(main())
+```
+
+As you can see in the above example `fetch` takes no parameters, thus it has no endogenous dependencies. However, you can see that we were still able to apply a dependency through an exogenous dependency passed to the `task` wrapper. Thus, `fetch` will wait to run until the dependency finishes. You can also see in the invocation of process, that we can mix endogenous and exogenous dependencies. One last thing to note is that in order to apply exogenous dependencies we need to explicitly wrap the function with `task` on invocation, which means you might be double wrapping tasks which have already been decorated, this is ok, and will not cause any issues.
