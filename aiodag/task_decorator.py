@@ -5,16 +5,25 @@ from functools import wraps
 
 def task(afunc):
     @wraps(afunc)
-    def wrapper(*args):  # TODO: support *args and **kwargs
+    def wrapper(*args, **kwargs):
         async def _inner():
-            nonlocal args
-            args = [arg if inspect.isawaitable(arg) else _task_wrapper(arg)
-                    for arg in args]
-            args = await asyncio.gather(*args)
-            return await afunc(*args)
+            callargs = inspect.signature(afunc).bind(*args, **kwargs).arguments
+            gather_args = {}
+            non_gather_args = {}
+            for k, v in callargs.items():
+                if inspect.isawaitable(v):
+                    gather_args[k] = v
+                else:
+                    non_gather_args[k] = v
+
+            gather_args = dict(
+                zip(
+                    gather_args.keys(),
+                    await asyncio.gather(*gather_args.values())
+                )
+            )
+
+            callargs = {**gather_args, **non_gather_args}
+            return await afunc(**callargs)
         return asyncio.create_task(_inner())
     return wrapper
-
-
-async def _task_wrapper(val):
-    return val
