@@ -3,7 +3,8 @@ import inspect
 from functools import wraps
 
 
-def task(afunc, *exogenous_deps):
+# TODO: make this a real decorator with args  e.g. @task(raw=True)
+def task(afunc, *exogenous_deps, raw=False):
     """
     Example:
 
@@ -33,25 +34,37 @@ def task(afunc, *exogenous_deps):
     def wrapper(*args, **kwargs):
         async def _inner():
             callargs = inspect.signature(afunc).bind(*args, **kwargs).arguments
+            if raw:
+                for k, v in callargs.items():
+                    if not inspect.isawaitable(v):
+                        callargs[k] = task_wrapper(v)
+                if callargs:
+                    await asyncio.wait(callargs.values())
+            else:
+                gather_args = {}
+                non_gather_args = {}
+                for k, v in callargs.items():
+                    if inspect.isawaitable(v):
+                        gather_args[k] = v
+                    else:
+                        non_gather_args[k] = v
 
-            gather_args = {}
-            non_gather_args = {}
-            for k, v in callargs.items():
-                if inspect.isawaitable(v):
-                    gather_args[k] = v
-                else:
-                    non_gather_args[k] = v
-
-            gather_args = dict(
-                zip(
-                    gather_args.keys(),
-                    await asyncio.gather(*gather_args.values())
+                gather_args = dict(
+                    zip(
+                        gather_args.keys(),
+                        await asyncio.gather(*gather_args.values())
+                    )
                 )
-            )
-            callargs = {**gather_args, **non_gather_args}
+                callargs = {**gather_args, **non_gather_args}
 
-            await asyncio.gather(*exogenous_deps)
+            # TODO: if raw=True, need to pass results of exog deps to task somehow...
+            if exogenous_deps:
+                await asyncio.wait(exogenous_deps)
 
             return await afunc(**callargs)
         return asyncio.create_task(_inner())
     return wrapper
+
+
+async def task_wrapper(val):
+    return val
