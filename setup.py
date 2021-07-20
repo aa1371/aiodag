@@ -19,13 +19,13 @@ keywords = ["dag", "asyncio", "aiodag"]
 
 setup(
     name='aiodag',
-    version='0.3',
+    version='0.4',
     description=('Build and execute AsyncIO powered DAGs.'),
     classifiers=classifiers,
     platforms=['POSIX'],
     author="aa1371",
     url='https://github.com/aa1371/aiodag',
-    download_url='https://github.com/aa1371/aiodag/archive/refs/tags/v0.3.tar.gz',
+    download_url='https://github.com/aa1371/aiodag/archive/refs/tags/0.4.tar.gz',
     license='MIT',
     packages=find_packages(exclude=['tests', 'tests.*']),
     keywords=keywords
