@@ -167,3 +167,47 @@ loop.run_until_complete(main())
 ```
 
 As you can see in the above example `fetch` takes no parameters, thus it has no endogenous dependencies. However, you can see that we were still able to apply a dependency through an exogenous dependency passed to the `task` wrapper. Thus, `fetch` will wait to run until the dependency finishes. You can also see in the invocation of process, that we can mix endogenous and exogenous dependencies. One last thing to note is that in order to apply exogenous dependencies we need to explicitly wrap the function with `task` on invocation, which means you might be double wrapping tasks which have already been decorated, this is ok, and will not cause any issues.
+
+
+## Error Handling
+By default if a task fails, all tasks that depend on it will also fail. This is usually the standard behavior of a DAG of tasks, however, this might not always be the desired behavior. There are cases where you will want a tasks to run regardless of the completion status of its dependencies. The way we can handle this is by declaring a task as ``@task(raw=True)``. When you do this rather than passing in the resolved task result to the dependent task, it will instead pass in the raw task objects, however, it will still wait for all tasks to complete before doing so. This way if a task dependency fails, it will still be able to pass along a value to the downstream task. Within the raw task, you can then use ``dep_task.result()`` to access the result, and add your own error handling around the call to handle errors as you see fit.
+
+Here's an example of how this might look:
+```
+@task
+async def process_A():
+    raise IOError()
+    
+@task
+async def process_B():
+    return 10
+    
+@task
+async def process_C():
+    return 10
+    
+@task(raw=True)
+async def consolidate(a, b, c, d):
+    try:
+        a.result()
+    except IOError:
+        print('eh')
+        a = 1
+    
+    b = b.result()
+    c = c.result()
+    d = d.result()
+    return a + b + c + d
+    
+async def main():
+    a = process_A()
+    b = process_B()
+    c = process_C()
+
+    # notice that 99 is passed as a plain value, but it is still able 
+    # to be accessed through `.result()` in the `consolidate` raw task.
+    return await consolidate(a, b, c, 99)
+
+loop = asyncio.new_event_loop()
+loop.run_until_complete(main())
+```
