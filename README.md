@@ -211,3 +211,4 @@ async def main():
 loop = asyncio.new_event_loop()
 loop.run_until_complete(main())
 ```
+After running this example, you can see that even though the `process_A` task failed, the dependent `consolidate` task was still able to run, and handle the error as it saw fit.
