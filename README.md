@@ -11,7 +11,7 @@ pip install aiodag
 ```
 
 ## Example
-Let's start with an example of a simple ETL pipeline. In the section below we will define all the independent tasks for our pipeline. You'll see that each task definition knows nothing about any of the other task definitions.
+Let's start with an example of a simple ETL pipeline (note: aiodag is not limited to these kinds of pipelines, anytime you have asynchronous tasks that depend on eachother aiodag can be used). In the section below we will define all the independent tasks for our pipeline. You'll see that each task definition knows nothing about any of the other task definitions.
 ```
 from aiodag import task
 
