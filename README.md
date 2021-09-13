@@ -1,7 +1,7 @@
 # aiodag
 Build and execute AsyncIO powered DAGs
 
-aiodag allows you to easily define complex asynnchronous processing pipelines by treating the pipeline as a DAG consisting of a collection of independent tasks. Rather than being connected through static source code definitions, or complicated plumbing code, these tasks are connected through a functional invocation interface that feels like you're writing synchronous code.
+aiodag allows you to easily define complex asynchronous processing pipelines by treating the pipeline as a DAG consisting of a collection of independent tasks. Rather than being connected through static source code definitions, or complicated plumbing code, these tasks are connected through a functional invocation interface that feels like you're writing synchronous code.
 
 The entire API consists of a single decorator called `task`, that you can either add directly on the async function definitions, or invoke at execution time. The library is very lightweight, depending only on the python standard library.
 
