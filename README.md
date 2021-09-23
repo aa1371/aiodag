@@ -5,6 +5,21 @@ aiodag allows you to easily define complex asynchronous processing pipelines by 
 
 The entire API consists of a single decorator called `task`, that you can either add directly on the async function definitions, or invoke at execution time. The library is very lightweight, depending only on the python standard library.
 
+Building an asynchronous pipeline is as easy as this:
+
+```
+async def main():
+    leaf1 = leaf(1)
+    leaf2 = leaf(2)
+    leaf3 = leaf(3)
+    leaf4 = leaf(4)
+    
+    trunk1 = trunk(leaf1, leaf2)
+    trunk2 = trunk(leaf3, leaf4)
+    
+    await root(trunk1, trunk2)
+```
+
 ## Installation
 ```
 pip install aiodag
